@@ -1,0 +1,13 @@
+\contentsline {section}{Introduction and Motivation}{1}{Doc-Start}
+\contentsline {section}{Exploratory Analysis}{2}{Doc-Start}
+\contentsline {subsection}{League averages}{2}{section*.1}
+\contentsline {subsection}{Outliers}{2}{figure.1}
+\contentsline {section}{Methods}{3}{figure.2}
+\contentsline {subsection}{Data cleaning}{3}{section*.2}
+\contentsline {subsection}{Regression methods}{4}{table.1}
+\contentsline {section}{Results}{4}{equation.0.2}
+\contentsline {subsection}{Model fit}{5}{figure.3}
+\contentsline {subsection}{2015-2016 NHL predictions}{5}{figure.3}
+\contentsline {section}{Conclusion}{6}{table.2}
+\contentsline {subsection}{Summary of findings}{6}{section*.3}
+\contentsline {subsection}{Future work}{6}{Item.3}

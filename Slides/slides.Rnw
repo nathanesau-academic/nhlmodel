@@ -1,0 +1,247 @@
+\documentclass{beamer}
+
+\usepackage{slides}
+\usepackage{graphicx}
+
+\begin{document}
+\SweaveOpts{concordance=TRUE}
+
+\title{Predicting points in the NHL}
+\author{ Nathan Esau, Fernando Villasenor and Steve Kane}
+\date{December 1, 2015}
+
+\begin{frame}
+\titlepage
+\end{frame}
+
+\begin{frame}{Outline}
+
+\color{black}{
+\tableofcontents}
+\end{frame}
+
+\begin{frame}{Background}
+
+\section{Introduction}
+
+\begin{itemize}
+\item Trying to predict PTS scored by an NHL team at any time in the season using other variables
+\item Two points for a win, one point for overtime or shootout loss, no points for regulation loss
+\item 2007--2008 season to 2014--2015 season data
+\item 2012--2013 was a lockout season (48 of 82 games played)
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}{Data}
+
+\section{Data}
+
+\subsection{Web scraping}
+
+{\small
+\begin{itemize}
+\item Scraped from \url{hockey-reference.com}
+\begin{itemize}
+\item Figure out which URLs to parse \\ \vspace{2mm}
+\item[] {\footnotesize\url{http://www.hockey-reference.com/leagues/NHL_2014.html}}
+\item[] {\footnotesize\url{http://www.hockey-reference.com/leagues/NHL_2015.html}}
+\item[] \qquad $\vdots$ \\ \vspace{2mm}
+\item In R, can use \texttt{XML::readHTMLTable(URL)}
+\item Deal with data types (convert to \texttt{numeric}, \texttt{factor}, etc)
+\item Merge each \texttt{data.frame} and keep common columns
+\end{itemize}
+\item 2007--2008 season to 2014--2015 season (advanced metrics not available before this, and earlier seasons had higher scoring)
+\end{itemize}
+}
+
+\end{frame}
+
+\begin{frame}{Variables}
+
+\subsection{Variables}
+
+\vspace{-6mm}
+\begin{table}[ht]
+\footnotesize
+\begin{tabular}{llp{5cm}}
+\hline
+& Variable & Description \\ \hline
+AvAge & Average Age & Age weighted by time on ice \\
+BLK & Blocks & Blocked shots \\
+FF\% & Fenwick for percentage & A measure of puck possession \\
+GA & Goals against & Goals allowed \\
+GF & Goals for & Goals scored \\
+PK\% & Penalty kill percentage & \% other team scores on power play \\
+PP\% & Power play percentage & \% team scores on power play \\
+PTS & Points & A measure of a teams success \\
+S & Shots & Shots on goal \\
+SA & Shots against & Shots allowed on goal \\
+SH & Short-handed goals & Goals scored on penalty kill \\
+SHA & Short-handed goals allowed & Goals allowed on power play \\
+SOS & Strength of schedule & Looks at whether team does well due to weak opponents \\
+SRS & Simple rating system & Takes into account average goal differential 
+\end{tabular}
+\end{table}
+
+\end{frame}
+
+\begin{frame}{Summary statistics}
+
+\subsection{Summary statistics}
+
+\begin{itemize}
+\item Some variables are a sum (i.e. GF, GA, BLK) whereas others are average (i.e. AvAge, PK\%)
+\item When doing predictions, some coefficients needed to be scaled
+\end{itemize}
+
+\begin{columns}
+
+\column{0.5\textwidth}
+\begin{table}
+\small
+\begin{tabular}{l r r}
+\hline
+& Mean & SD \\ \hline
+AvAge & 27.84 & 1.16 \\
+BLK & 1119.59 & 151.79 \\
+GF, GA & 228.88 & 23.5 \\
+PK\% & 81.86 & 2.87 \\
+PTS & 91.83 & 13.26 \\
+S, SA & 2456.1 & 94.89 \\
+SH, SHA & 6.75 & 3.1 
+\end{tabular}
+\caption{82 games played}
+\end{table}
+
+\column{0.5\textwidth}
+\begin{table}
+\small
+\begin{tabular}{l r r}
+\hline
+& Mean & SD \\ \hline
+AvAge & 27.64 & 1.08 \\
+BLK & 686.57 & 83.63 \\
+GF, GA & 50.04 & 3.09 \\
+PK\% & 81.75 & 3.43 \\
+PTS & 53.4 & 9.64 \\
+S, SA & 1398.8 & 94.89 \\
+SH, SHA & 3.1 & 2.26 
+\end{tabular}
+\caption{48 games played}
+\end{table}
+
+\end{columns}
+
+\end{frame}
+
+\begin{frame}{Goals for and goals against model}
+
+\section{Models}
+
+\subsection{Goals for and goals against model}
+
+\begin{figure}
+\vspace{-10mm}
+\includegraphics[width=0.6\textwidth]{report-basic_model}
+\vspace{-5mm}
+\caption{The model PTS = $\beta_{0}$ + $\beta_{1}$GF + $\beta_{2}$GA has $R^{2}_{Adj}$ = 0.85}
+\end{figure}
+
+\end{frame}
+
+\begin{frame}{Other models}
+
+\subsection{Other models}
+
+\vspace{-7mm}
+\begin{table}[ht]
+\setlength{\tabcolsep}{5pt} % General space between cols (6pt standard)
+\scriptsize
+\def\arraystretch{1.0}
+\begin{tabular}{l}
+\textbf{Model} \\ \hline
+\begin{tabular}{l r r r}
+(1) & $\beta_{0}$ & GF & GA \\
+$\beta$ & 17.86 & 0.51 & -0.2 \\
+$p$ & 0 & 0 & 0  \\ 
+\end{tabular} \\ \hline
+\begin{tabular}{l r r r r r}
+(2) & $\beta_{0}$ & GF & GA & S & SA \\
+$\beta$ & 8.57 & 0.35 & -0.32 & 0.02 & 0.01 \\
+$p$ & 2e-04 & 0 & 0 & 0 & 0  \\ 
+\end{tabular} \\ \hline
+\begin{tabular}{l r r r r r r r}
+(3) & $\beta_{0}$ & Age & GF & GA & SRS & S & SA \\
+$\beta$ & -15.58 & 0.86 & 0.21 & -0.17 & 11.43 & 0.02 & 0.01 \\
+$p$ & 0.0749 & 0.0051 & 0 & 8e-04 & 0.004 &  0 &  0  \\ 
+\end{tabular}  \\ \hline
+\begin{tabular}{l r r r r r r r r r}
+(4) & $\beta_{0}$ & Age & GF & GA & SA & FF\% & BLK & SOS & PK\% \\
+$\beta$ & -116.11 & 0.94 & 0.37 & -0.3 & 0.02 & 1.39 & 0.01 & 18.89 & 0.33 \\
+$p$ & 0 & 0.0028 & 0 & 0 & 0 &  0 &  0.0041 &  0.0017 &  0.0189 \\ 
+\end{tabular} \\ \hline
+\end{tabular}
+%\caption{{\small Models fit to data with 2012--2013 lockout season included}}
+\end{table}
+
+\begin{columns}
+
+\column{0.4\textwidth}
+\hspace{2.75mm}
+{\scriptsize
+\begin{tabular}{c c c}
+\textbf{Model} & $R^{2}_{Adj}$ & RMSPE \\ \hline
+(1) & 0.8516 & 3.1385 \\
+(2) & 0.9093 & 2.2702 \\
+(3) & 0.9144 & 2.3054 \\
+(4) & 0.9179 & 2.4144 
+\end{tabular}
+}
+\column{0.6\textwidth}
+
+\vspace{-5mm}
+\begin{itemize}
+\item Selected model PTS = $\beta_{0}$ + $\beta_{1}$ GF + $\beta_{2}$ GA + $\beta_{3}$ S + $\beta_{4}$ SA 
+\end{itemize}
+
+\end{columns}
+
+\end{frame}
+
+\begin{frame}{Residuals}
+
+\section{Results}
+
+\begin{itemize}
+\item 2015--2016 season predictions produced right residual plot
+\item Largest residuals are Edmonton and Colorado (15 PTS)
+\end{itemize}
+
+\vspace{-5mm}
+\begin{figure}[ht]
+\includegraphics[width=1.0\textwidth]{report-residual_plots}
+\vspace{-3mm}
+\caption{Fitted residuals (left); Out of sample residuals (right)}
+\end{figure}
+
+\end{frame}
+
+\begin{frame}{Remarks}
+
+\begin{itemize}
+\item Main findings
+\begin{itemize}
+\item Shots and shots against also significant (along with goals for and goals against)
+\item Points in hockey is relatively easy to predict (high $R^{2}$)
+\end{itemize}
+\item Future work 
+\begin{itemize} 
+\item Predicting end of season points
+\item Time series model?
+\end{itemize}
+\end{itemize}
+
+\end{frame}
+
+\end{document}

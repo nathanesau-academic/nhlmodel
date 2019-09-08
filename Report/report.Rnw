@@ -1,0 +1,326 @@
+\documentclass[12pt]{article}
+\usepackage[utf8]{inputenc}
+
+\usepackage{report_template}
+\usepackage{color}
+\usepackage{vwcol} 
+\usepackage[
+labelfont=sf,
+hypcap=false,
+calcwidth=1.0\linewidth
+]{caption}
+
+\begin{document}
+\SweaveOpts{concordance=TRUE}
+
+\thispagestyle{firststyle}
+
+{\Large \noindent\textbf{Predicting points in the NHL}}
+
+\medskip
+\noindent \textsl{by Nathan Esau, Fernando Villasenor and Steve Kane} \hfill {\footnotesize\url{http://github.com/stat350/nhlmodel}}
+
+\section{Introduction and Motivation}
+
+The point system of the NHL currently awards two points to the winner, one point to a team that loses either in overtime or in a shoot-out, and zero points to a team that loses in regulation time. Our analysis is an attempt to explain the number of points that a team will get in a season using linear regression. The variables in our model include how many goals a team has scored or allowed, how many shots they have taken or allowed, how old their players are, and perhaps other variables. It is important to note that we do not need to know the outcome of any particular game to do this and we are using aggregate quantities to determine a teams current season standing.
+
+Our data ranges from the 2007--2008 season to the 2014--2015 season. Before the 2007--2008 season many of our advanced metrics were not available. A peculiarity of our data is that the 2012--2013 season was affected by a lockout which led to only 48 out of a usual 82 games played. We still use all of this season in our analysis and deal with this problem by scaling certain covariates by the proportion of the season a team has played.
+
+\section{Exploratory analysis}
+
+Many of the variables in hockey data are redundant. For instance, points summarizes the number of wins, losses and overtime or shootout losses a team has and faceoff percentage summarizes the number of faceoffs a team has won and lost. We tried to choose variables that conveyed different information to avoid colinearity. These variables are shown below.
+
+\begin{table}[ht]
+\small
+\def\arraystretch{1.2}
+\centering
+\begin{tabular}{p{1.2cm} p{2.2cm} p{3.5cm} |p{1.2cm} p{2.5cm} p{3.8cm}}
+\hline
+ & Variable & Description & & Variable & Description\\ \hline
+AvAge & Average Age & Age weighted by time on ice & PTS & Points & A measure of a teams success \\ \hline
+BLK & Blocks & Blocked shots & S & Shots & Shots on goal \\ \hline
+FF\% & Fenwick for percentage & A measure of puck possession & SA & Shots Against & Shots allowed on goal \\ \hline 
+GA & Goals Against & Goals allowed & SH & Short-handed goals & Goals scored while on penalty kill \\ \hline
+GF & Goals For & Goals scored & SHA & Short-handed goals allowed & Goals allowed while on power play \\ \hline
+PK\% & Penalty kill perrcentage & Percentage other team scores on power play & SOS & Strength of schedule & Looks at whether team is good due to weak opponents \\ \hline
+PP\% & Power play percentage & Percentage team scores on power play & SRS & Simple rating system & Takes into account average goal differential \\ \hline
+\end{tabular} 
+\caption{Hockey statistics used in our analysis}
+\end{table}
+
+<<echo=FALSE, fig=FALSE,label=basic_model,width=5.00,height=5.25>>=
+library(scatterplot3d)
+load("~/Documents/Stat350Project/Data/all_season_data.Rdata")
+
+names(all_season_data) <- c("Team", "Season", "Rk", "AvAge", "GP", "W", "L", "OL",
+  "PTS", "PTSper", "GF", "GA", "SRS", "SOS", "TGperG", "PP", "PPO",
+  "PPper", "PPA", "PPOA", "PKper", "SH", "SHA", "S", "Sper", "SA",
+  "SVper", "PDO", "CF", "CA", "CFper", "FF", "FA", "FFper", "oZSper",
+  "dZSper", "HIT", "BLK", "FOwin", "FOloss","FOper","team_salary","max_salary")
+  
+all_season_data_nl <- all_season_data[c(1:150,181:240),]
+s3d_data <- data.frame(GF=as.vector(sample(all_season_data_nl$GF,size = 120)),
+  GA=as.vector(sample(all_season_data_nl$GF,size = 120)),
+  Points=as.vector(sample(all_season_data_nl$PTS,size = 120)))
+model <- lm(PTS ~ GF + GA, data=all_season_data_nl)
+names(s3d_data) <- c("Goals For", "Goals Against", "Points")
+s3d <- scatterplot3d(s3d_data, pch=20, type='p',
+  angle = 220, scale.y = .6,
+  highlight.3d=TRUE, main="",
+  lab=c(3,3,3),zlim=c(45,155),
+  y.margin.add=0.2)
+s3d$plane3d(model, lty.box="solid")
+@
+
+\begin{vwcol}[widths={0.68,0.32}, sep=0cm, justify=flush, 
+rule=0pt, indent=0em] 
+%
+\begin{minipage}{0.68\linewidth}
+\vspace{-15mm}
+\includegraphics[width=1.0\textwidth]{report-basic_model}
+\vspace{-12mm}
+\setcounter{figure}{0}
+\captionof{figure}{The model PTS = $\beta_{0}$ + $\beta_{1}$ GF + $\beta_{2}$ GA}
+\end{minipage}
+
+<<echo=FALSE>>=
+GP82 <- all_season_data[c(1:150,181:240),]
+GP48 <- all_season_data[c(151:180),]
+
+AvAge82.mean <- mean(GP82$AvAge)
+AvAge82.sd <- sd(GP82$AvAge)
+AvAge48.mean <- mean(GP48$AvAge)
+AvAge48.sd <- sd(GP48$AvAge)
+
+BLK82.mean <- mean(GP82$BLK)
+BLK82.sd <- sd(GP82$BLK)
+BLK48.mean <- mean(GP48$BLK)
+BLK48.sd <- sd(GP48$BLK)
+
+FF82.mean <- mean(GP82$FFper)
+FF82.sd <- sd(GP82$FFper)
+FF48.mean <- mean(GP48$FFper)
+FF48.sd <- sd(GP48$FFper)
+
+GF82.mean <- mean(GP82$GF)
+GF82.sd <- sd(GP82$GF)
+GF48.mean <- mean(GP48$FFper)
+GF48.sd <- sd(GP48$FFper)
+
+PK82.mean <- mean(GP82$PKper)
+PK82.sd <- sd(GP82$PKper)
+PK48.mean <- mean(GP48$PKper)
+PK48.sd <- sd(GP48$PKper)
+
+PTS82.mean <- mean(GP82$PTS)
+PTS82.sd <- sd(GP82$PTS)
+PTS48.mean <- mean(GP48$PTS)
+PTS48.sd <- sd(GP48$PTS)
+
+S82.mean <- mean(GP82$S)
+S82.sd<- sd(GP48$S)
+S48.mean <- mean(GP48$S)
+S48.sd <- sd(GP48$S)
+
+SH82.mean <- mean(GP82$SH)
+SH82.sd <- sd(GP82$SH)
+SH48.mean <- mean(GP48$SH)
+SH48.sd <- sd(GP48$SH)
+
+SOS82.mean <- mean(GP82$SOS)
+SOS82.sd <- sd(GP82$SOS)
+SOS48.mean <- mean(GP48$SOS)
+SOS48.sd <- sd(GP48$SOS)
+
+SRS82.mean <- mean(GP82$SRS)
+SRS82.sd <- sd(GP82$SRS)
+SRS48.mean <- mean(GP48$SRS)
+SRS48.sd <- sd(GP48$SRS)
+@
+%
+\begin{minipage}{0.32\linewidth}
+%\vspace{-10mm}
+{\small
+\begin{tabular}{l r r }
+\hline
+\textsl{82 GP} & Mean & SD \\ \hline
+\text{AvAge} & \Sexpr{round(AvAge82.mean,2)} & \Sexpr{round(AvAge82.sd,2)} \\
+\text{BLK} & \Sexpr{round(BLK82.mean,2)} & \Sexpr{round(BLK82.sd,2)} \\
+%\text{FF\%} & \Sexpr{round(FF82.mean,2)} & \Sexpr{round(FF82.sd,2)} \\
+\text{GF, GA} & \Sexpr{round(GF82.mean,2)} & \Sexpr{round(GF82.sd,2)}  \\ 
+%\textsl{SOS} & \Sexpr{round(SOS82.mean,2)} & \Sexpr{round(SOS82.sd,2)} \\
+%\textsl{SRS} & \Sexpr{round(SRS82.mean,2)} & \Sexpr{round(SRS82.sd,2)} \\
+\text{PK\%} & \Sexpr{round(PK82.mean,2)} & \Sexpr{round(PK82.sd,2)} \\
+\text{PTS} & \Sexpr{round(PTS82.mean,2)} & \Sexpr{round(PTS82.sd,2)} \\
+\text{S, SA} & \Sexpr{round(S82.mean,2)} & \Sexpr{round(S82.sd,2)} \\ 
+\text{SH, SHA} & \Sexpr{round(SH82.mean,2)} & \Sexpr{round(SH82.sd,2)} 
+\end{tabular} 
+
+\medskip\smallskip
+\begin{tabular}{l r r }
+\hline
+\textsl{48 GP} & Mean & SD \\ \hline
+\text{AvAge} & \Sexpr{round(AvAge48.mean,2)} & \Sexpr{round(AvAge48.sd,2)} \\
+\text{BLK} & \Sexpr{round(BLK48.mean,2)} & \Sexpr{round(BLK48.sd,2)} \\
+%\text{FF\%} & \Sexpr{round(FF82.mean,2)} & \Sexpr{round(FF82.sd,2)} \\
+\text{GF, GA} & \Sexpr{round(GF48.mean,2)} & \Sexpr{round(GF48.sd,2)}  \\ 
+%\textsl{SOS} & \Sexpr{round(SOS82.mean,2)} & \Sexpr{round(SOS82.sd,2)} \\
+%\textsl{SRS} & \Sexpr{round(SRS82.mean,2)} & \Sexpr{round(SRS82.sd,2)} \\
+\text{PK\%} & \Sexpr{round(PK48.mean,2)} & \Sexpr{round(PK48.sd,2)} \\
+\text{PTS} & \Sexpr{round(PTS48.mean,2)} & \Sexpr{round(PTS48.sd,2)} \\
+\text{S, SA} & \Sexpr{round(S48.mean,2)} & \Sexpr{round(S48.sd,2)} \\ 
+\text{SH, SHA} & \Sexpr{round(SH48.mean,2)} & \Sexpr{round(SH48.sd,2)} \\
+\end{tabular}}
+\setcounter{table}{1}
+\captionof{table}{Summary statistics from 2008--2015 for 82 game and 48 game seasons.}
+\end{minipage}
+\end{vwcol}
+
+\vspace{-25mm}\noindent
+A well-known model for predicting points in hockey is PTS = $\beta_{0} + \beta_{1}$ GF + $\beta_{2}$ GA, shown above in Figure 1 for non-lockout seasons. Notice that the dots are nicely scattered around the plane with the exception of a few outliers. Later on, we show that it is possible to obtain a model with a lower $R^{2}_{Adj}$ and out of sample MSE by incorporating other variables into the model.
+
+Not all of the variables increase as the number of games played increases. In particular, AvAge, FF\%, PK\%, PP\%, SOS and SRS are relatively stable as the number of games played changes. This is evident by comparing the value of PK\% in the 48 game season to the value of PK\% in the 82 game season in Table 2. Later on in our analysis, when we predict points in the 2015--2016 season, we scale the coefficients of these variables by the proportion of the season which a team has played and obtain the MSE of these predictions.
+
+\section{Methods}
+
+To explain the number of points a team has we used multivariate regression. We used the R function \texttt{regsubsets} from the \texttt{leaps} package to determine the best model given a certain number of covariates. This function tried all possible combinations of the variables shown in Table 1 given a fixed model size and returned the variables which were most significant (had the smallest $p$-values). We then compared models of different sizes using $R^{2}_{Adj}$ and the square root of out of sample MSE (RMSPE) which as calculated based on our current season points predictions as at November 21, 2015.
+
+As explained previously, some variables are not proportional to the number of games a team plays. For this reason, some variables such as SRS and SOS did not work very well when including the lockout season in the training set. We fit separate models on two training sets, one of which included the 48 game lockout season and one of which excluded the 48 game lockout season. The models shown in Table 3 and Table 4 use the variables suggested by the \texttt{regsubsets} function.
+
+<<echo=FALSE>>=
+load("~/Documents/Stat350Project/Data/models.Rdata")
+load("~/Documents/Stat350Project/Data/models_mse.Rdata")
+sm2 <- summary(model2)
+sm2.ars <- sm2$adj.r.squared
+sm2.c <- coef(sm2)
+
+sm4 <- summary(model4)
+sm4.ars <- sm4$adj.r.squared
+sm4.c <- coef(sm4)
+
+sm5 <- summary(model5)
+sm5.ars <- sm5$adj.r.squared
+sm5.c <- coef(sm5)
+
+sm6 <- summary(model6)
+sm6.ars <- sm6$adj.r.squared
+sm6.c <- coef(sm6)
+
+sm7 <- summary(model7)
+sm7.ars <- sm7$adj.r.squared
+sm7.c <- coef(sm7)
+
+sm8 <- summary(model8)
+sm8.ars <- sm8$adj.r.squared
+sm8.c <- coef(sm8)
+@
+
+\begin{table}[ht]
+\footnotesize
+\def\arraystretch{1.2}
+\centering
+\begin{tabular}{l |p{1.5cm} |r}
+\hline
+\textsl{Model} & $R^{2}_{Adj}$ & \textsl{RMSPE} \\ \hline
+\begin{tabular}{l r r r}
+& $\beta_{0}$ & GF & GA \\
+coef & \Sexpr{round(sm2.c[1,1], 2)} & \Sexpr{round(sm2.c[2,1], 2)} & \Sexpr{round(sm2.c[3,1], 2)} \\
+$p$ & \Sexpr{round(sm2.c[1,4], 4)} & \Sexpr{round(sm2.c[2,4], 4)} & \Sexpr{round(sm2.c[3,4], 4)}  \\ 
+\end{tabular} & \Sexpr{round(sm2.ars,4)} & \Sexpr{round(sqrt(mse2), 4)} \\ \hline
+\begin{tabular}{l r r r r r}
+& $\beta_{0}$ & GF & GA & S & SA \\
+coef & \Sexpr{round(sm4.c[1,1], 2)} & \Sexpr{round(sm4.c[2,1], 2)} & \Sexpr{round(sm4.c[3,1], 2)} & \Sexpr{round(sm4.c[4,1], 2)} & \Sexpr{round(sm4.c[5,1], 2)} \\
+$p$ & \Sexpr{round(sm4.c[1,4], 4)} & \Sexpr{round(sm4.c[2,4], 4)} & \Sexpr{round(sm4.c[3,4], 4)} & \Sexpr{round(sm4.c[4,4], 4)} & \Sexpr{round(sm4.c[5,4], 4)}  \\ 
+\end{tabular} & \Sexpr{round(sm4.ars,4)} & \Sexpr{round(sqrt(mse4), 4)} \\ \hline
+\begin{tabular}{l r r r r r r r}
+& $\beta_{0}$ & AvAge & GF & GA & SRS & S & SA \\
+coef & \Sexpr{round(sm6.c[1,1], 2)} & \Sexpr{round(sm6.c[2,1], 2)} & \Sexpr{round(sm6.c[3,1], 2)} & \Sexpr{round(sm6.c[4,1], 2)} & \Sexpr{round(sm6.c[5,1], 2)} & \Sexpr{round(sm6.c[6,1], 2)} & \Sexpr{round(sm6.c[7,1], 2)} \\
+$p$ & \Sexpr{round(sm6.c[1,4], 4)} & \Sexpr{round(sm6.c[2,4], 4)} & \Sexpr{round(sm6.c[3,4], 4)} & \Sexpr{round(sm6.c[4,4], 4)} & \Sexpr{round(sm6.c[5,4], 4)} &  \Sexpr{round(sm6.c[6,4], 4)} &  \Sexpr{round(sm6.c[7,4], 4)}  \\ 
+\end{tabular} & \Sexpr{round(sm6.ars,4)} & \Sexpr{round(sqrt(mse6), 4)} \\ \hline
+\begin{tabular}{l r r r r r r r r r}
+& $\beta_{0}$ & AvAge & GF & GA & SA & FF\% & BLK & SOS & PK\% \\
+coef & \Sexpr{round(sm8.c[1,1], 2)} & \Sexpr{round(sm8.c[2,1], 2)} & \Sexpr{round(sm8.c[3,1], 2)} & \Sexpr{round(sm8.c[4,1], 2)} & \Sexpr{round(sm8.c[5,1], 2)} & \Sexpr{round(sm8.c[6,1], 2)} & \Sexpr{round(sm8.c[7,1], 2)} & \Sexpr{round(sm8.c[8,1], 2)} & \Sexpr{round(sm8.c[9,1], 2)} \\
+$p$ & \Sexpr{round(sm8.c[1,4], 4)} & \Sexpr{round(sm8.c[2,4], 4)} & \Sexpr{round(sm8.c[3,4], 4)} & \Sexpr{round(sm8.c[4,4], 4)} & \Sexpr{round(sm8.c[5,4], 4)} &  \Sexpr{round(sm8.c[6,4], 4)} &  \Sexpr{round(sm8.c[7,4], 4)} &  \Sexpr{round(sm8.c[8,4], 4)} &  \Sexpr{round(sm8.c[9,4], 4)} \\ 
+\end{tabular} & \Sexpr{round(sm8.ars,4)} & \Sexpr{round(sqrt(mse8), 4)} \\ \hline
+\end{tabular}
+\caption{Models fit to data with 2012--2013 lockout season included}
+\end{table}
+
+\medskip\noindent When models were fit to the first training set, we can see that goals for and goals against were important variables followed by shots and shots against. Most of the coefficients have an intuitive explanation. For instance, if a team scores many goals they have a better chance of winning games and getting more points so the coefficient for goals for is positive. One interesting coefficient is that for average age, which is positive for all models. This would imply that teams with older players tend to do better than teams with younger players since they have more experience.
+
+<<echo=FALSE>>=
+sm3nl <- summary(model3nl)
+sm3nl.ars <- sm3nl$adj.r.squared
+sm3nl.c <- coef(sm3nl)
+
+sm4nl <- summary(model4nl)
+sm4nl.ars <- sm4nl$adj.r.squared
+sm4nl.c <- coef(sm4nl)
+
+sm5nl <- summary(model5nl)
+sm5nl.ars <- sm5$adj.r.squared
+sm5nl.c <- coef(sm5nl)
+@
+
+\begin{table}[ht]
+\footnotesize
+\def\arraystretch{1.2}
+\centering
+\begin{tabular}{l |p{1.5cm} |r}
+\hline
+\textsl{Model} & $R^{2}_{Adj}$ & \textsl{RMSPE} \\ \hline
+\begin{tabular}{l r r r r}
+& $\beta_{0}$ & SRS & SOS & SH \\ 
+coef & \Sexpr{round(sm3nl.c[1,1], 2)} & \Sexpr{round(sm3nl.c[2,1], 2)} & \Sexpr{round(sm3nl.c[3,1], 2)} & \Sexpr{round(sm3nl.c[4,1], 2)} \\
+$p$ & \Sexpr{round(sm3nl.c[1,4], 4)} & \Sexpr{round(sm3nl.c[2,4], 4)} & \Sexpr{round(sm3nl.c[3,4], 4)} & \Sexpr{round(sm3nl.c[4,4], 4)}  \\ 
+\end{tabular} & \Sexpr{round(sm3nl.ars,4)} & \Sexpr{round(sqrt(mse3nl), 4)} \\ \hline
+\begin{tabular}{l r r r r r r}
+& $\beta_{0}$ & GF & GA & AvAge & SH & SHA \\
+coef & \Sexpr{round(sm5nl.c[1,1], 2)} & \Sexpr{round(sm5nl.c[2,1], 2)} & \Sexpr{round(sm5nl.c[3,1], 2)} & \Sexpr{round(sm5nl.c[4,1], 2)}  & \Sexpr{round(sm5nl.c[5,1], 2)} & \Sexpr{round(sm5nl.c[6,1], 2)} \\
+$p$ & \Sexpr{round(sm5nl.c[1,4], 4)} & \Sexpr{round(sm5nl.c[2,4], 4)} & \Sexpr{round(sm5nl.c[3,4], 4)} & \Sexpr{round(sm5nl.c[4,4], 4)} & \Sexpr{round(sm5nl.c[5,4], 4)} & \Sexpr{round(sm5nl.c[6,4], 4)}   \\ 
+\end{tabular} & \Sexpr{round(sm5nl.ars,4)} & \Sexpr{round(sqrt(mse5nl), 4)} \\ \hline
+\end{tabular}
+\caption{Models fit to data with 2012--2013 lockout season excluded}
+\end{table}
+
+\medskip\noindent For the second training set, we can see that goals for and goals against are no longer the most significant variables. Now, the simple rating system and strength of schedule metrics are most significant. When models were fit to this training set we found that $R^{2}_{Adj}$ values were smaller, most likely as a result of using less data when fitting the model. We ended up choosing the model PTS = $\beta_{0}$ + $\beta_{1}$GF + $\beta_{2}$GA + $\beta_{3}$S + $\beta_{4}$SA since it had the lowest RMSPE, comparable $R^{2}_{Adj}$ to other models, and is a model which is easy to interpret. 
+
+\section{Results}
+
+\vspace{-5mm}
+<<echo=FALSE, results=tex>>=
+library(xtable)
+ptable <- data.frame(Team=team_names, Actual=actual_pts, Predicted=pmodel4)
+ptable <- cbind(ptable[1:15,],ptable[16:30,])
+print(xtable(ptable,digits=c(0,0,0,2,0,0,2),align="llrr|lrr",caption="Predictions for 2015--2016 season at November 21, 2015 using the model PTS = $\\beta_{0}$ + $\\beta_{1}$GF + $\\beta_{2}$GA + $\\beta_{3}$S + $\\beta_{4}$SA fit with the lockout season included"),include.rownames=F,size="small")
+@
+
+\noindent
+The largest residuals in Table 5 come from the predictions for the Colorado Avalanche and Edmonton Oilers, which both have 15 points. Unlike Carolina, these teams have a near zero goal differential but few points as a result of losing close games, which our model cannot account for. Residual plots for the fitted model and predicted points are shown in Figure 2.
+
+<<echo=FALSE,fig=FALSE,label=residual_plots,width=7,height=3>>=
+par(mfrow=c(1,2))
+par(mar=c(5,5,1,1))
+plot(all_season_data$PTS, model4$residuals, xlab="Points", ylab="Residual",
+     pch=20)
+abline(h=0, col='red', lty=2)
+
+plot(actual_pts, pmodel4-actual_pts, xlab="Points", ylab="Residual",
+     pch=20)
+abline(h=0, col='red', lty=2)
+@
+
+\begin{figure}[!ht]
+\begin{center}
+\includegraphics[width=0.9\textwidth]{report-residual_plots}
+\end{center}
+\vspace{-9mm}
+\caption{{\small Residuals (fitted: left; predicted: right) for PTS = $\beta_{0} + \beta_{1}$GF + $\beta_{2}$GA + $\beta_{3}$S + $\beta_{4}$SA}}
+\end{figure}
+
+\vspace{-7mm}
+\section{Conclusion}
+
+We compared models using $R^{2}_{Adj}$ and out of sample MSPE. We chose the model PTS = $\beta_{0} + \beta_{1}$GF + $\beta_{2}$GA + $\beta_{3}$S + $\beta_{4}$SA. Our model can estimate the points a team has any time during the season if these variables are known. An area for future work would be to project a teams end of season points, perhaps with the use of a time series model.
+
+\end{document}

@@ -1,0 +1,33 @@
+\usepackage{amsmath}
+\usepackage[margin=1.0in]{geometry}
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage{multicol}
+
+\hypersetup{
+	colorlinks,
+	linkcolor={blue},
+	linktoc=page,
+	urlcolor=blue
+}
+
+\setcounter{secnumdepth}{0}
+\usepackage{fancyhdr}
+\usepackage{lipsum}
+\usepackage{titlesec}
+
+\pagestyle{fancy}
+\renewcommand{\headrulewidth}{0pt}
+
+\fancypagestyle{firststyle}
+{
+	\lhead{}
+	\rhead{}
+}
+
+
+\lhead{Predicting points in the NHL}
+%\rhead{Nathan, Steve, Fernando}
+
+\titleformat*{\section}{\large\bfseries}
+\titleformat*{\subsection}{\normalsize\bfseries\itshape}

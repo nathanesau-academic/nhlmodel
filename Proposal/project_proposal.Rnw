@@ -1,0 +1,59 @@
+\documentclass[12pt]{report}
+
+\usepackage[utf8]{inputenc}
+\usepackage[margin=1.0in]{geometry}
+\usepackage[colorlinks]{hyperref}
+\usepackage{multicol}
+
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\renewcommand{\headrulewidth}{0mm}
+\lhead{Stat 350 Project Proposal}
+\rhead{Nathan, Steve, Fernando}
+
+\begin{document}
+\SweaveOpts{concordance=TRUE}
+
+\section*{Introduction and Motivation}
+ In the National Hockey League (NHL) there are 30 teams, but only the top 8 teams in each conference (those with the most points) make the playoffs. How can we predict points from the data? Is it good offence (many goals scored), or is it good defence (few goals against) that predicts points? Do factors such as the age of the team or the physicality of the team impact the number of points a team gets?
+
+On a preliminary analysis, the most significant variables in predicting team point totals are goals scored and goals against, which together account for approximately 85\% of the variance in team point totals. In addition to goals scored and goals against, we wish to further examine the effect of additional variables in the prediction of team point totals.
+
+\section*{Description of Data}
+
+We have collected data from 8 NHL seasons (2007--2008 to 2014--2015) and all 30 NHL teams for a total of $n = 240$ rows and $p=41$ columns. Our goal is to predict the number of points a team will get based on variables such as
+
+\begin{multicols}{3}
+\begin{itemize}
+\item[--] goals against
+\item[--] goals for 
+\item[--] average age 
+\item[--] face-offs won
+\item[--] hits
+\item[--] blocked shots
+\item[--] power plays
+\item[--] power plays allowed
+\item[--] shots taken
+\end{itemize}
+\end{multicols}
+
+\medskip\noindent
+We believe that aggregating different seasons together is appropriate given the relative stability across our observation period with the lone exception being the 2012--2013 lockout season. Summary statistics comparing league averages (excluding the 2012--2013 lockout season) are shown below.  
+
+<<echo=FALSE,results=tex>>=
+load(paste0("~/Documents/GitHub/nhlmodel/",
+	"Data/all_league_season_data.Rdata"))
+tmp <- all_league_season_data[-c(6),]
+x1 <- summary(tmp$PTS)
+x2 <- summary(tmp$GA)
+x3 <- summary(tmp$PK.)
+x4 <- summary(tmp$S)
+table1 <- rbind(x1,x2,x3,x4)
+row.names(table1) <- c("Pts", "Goals allowed", "Penalty kill %", "Shots")
+library(xtable)
+print(xtable(table1,align="lrrrrrr",caption="Comparison of league average for non-lockout seasons, 2008--2015"))
+@
+
+We plan to use a multiple linear regression model based on the seasons ranging from 2008--2015 and, if appropriate, analyze the effect of transformations and  interaction terms in our model. To assess the quality of our model we will perform the requisite residual analyses while noting how the adjusted $R^{2}$ changes as we add different variables in our model. Lastly, we will examine if considerations for simplicity justify the additions introduced. The end goal is not a model  that `perfectly explains' past seasons, but can reliably predict the results of the upcoming 2015--2016 season. 
+
+\end{document}

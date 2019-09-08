@@ -1,0 +1,10 @@
+\beamer@endinputifotherversion {3.36pt}
+\beamer@sectionintoc {1}{Introduction}{3}{0}{1}
+\beamer@sectionintoc {2}{Data}{4}{0}{2}
+\beamer@subsectionintoc {2}{1}{Web scraping}{4}{0}{2}
+\beamer@subsectionintoc {2}{2}{Variables}{5}{0}{2}
+\beamer@subsectionintoc {2}{3}{Summary statistics}{6}{0}{2}
+\beamer@sectionintoc {3}{Models}{7}{0}{3}
+\beamer@subsectionintoc {3}{1}{Goals for and goals against model}{7}{0}{3}
+\beamer@subsectionintoc {3}{2}{Other models}{8}{0}{3}
+\beamer@sectionintoc {4}{Results}{9}{0}{4}
